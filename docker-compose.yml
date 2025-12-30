@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  mcp-server:
+    build: .
+    container_name: things-stack-mcp
+    environment:
+      # Setze diese Werte direkt hier oder über Umgebungsvariablen
+      - TTS_BASE_URL=${TTS_BASE_URL:-https://eu1.cloud.thethings.network}
+      - TTS_API_KEY=${TTS_API_KEY:-NNSXS.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX}
+    stdin_open: true
+    tty: true
+    # Nur für Daemon-Modus, für MCP normalerweise nicht benötigt
+    # restart: unless-stopped

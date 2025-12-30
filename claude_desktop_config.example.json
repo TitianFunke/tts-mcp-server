@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "things-stack": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "TTS_BASE_URL=https://eu1.cloud.thethings.network",
+        "-e",
+        "TTS_API_KEY=NNSXS.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "things-stack-mcp"
+      ]
+    }
+  }
+}
