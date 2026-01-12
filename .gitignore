@@ -1,6 +1,10 @@
 # Environment variables
 .env
 
+# Feature Liste (persönlich)
+FEATURES.md
+api_comparison.md
+
 # Python
 __pycache__/
 *.py[cod]
