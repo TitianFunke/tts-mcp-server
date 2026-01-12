@@ -87,7 +87,7 @@ async def list_tools() -> list[Tool]:
     return [
         Tool(
             name="list_applications",
-            description="List all applications accessible with the API key. Returns application IDs, names, and descriptions.",
+            description="List all LoRaWAN applications. Use this to: (1) See all applications a user owns, (2) Find application IDs for further operations, (3) Get overview of existing applications. Returns: application_id, name, description, creation date. Optional: filter by user_id.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -100,7 +100,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="get_application",
-            description="Get detailed information about a specific application by its ID",
+            description="Get detailed information about a specific LoRaWAN application. Use when you need: (1) Full application metadata, (2) Server addresses, (3) API key information, (4) Application attributes. Requires: application_id. Returns: Complete application object with all settings.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -120,7 +120,11 @@ async def list_tools() -> list[Tool]:
                 "properties": {
                     "user_id": {
                         "type": "string",
-                        "description": "User ID who owns the application"
+                        "description": "User ID who owns the application (required if organization_id is not set)"
+                    },
+                    "organization_id": {
+                        "type": "string",
+                        "description": "Organization ID who owns the application (required if user_id is not set)"
                     },
                     "application_id": {
                         "type": "string",
@@ -135,7 +139,7 @@ async def list_tools() -> list[Tool]:
                         "description": "Application description (optional)"
                     }
                 },
-                "required": ["user_id", "application_id", "name"]
+                "required": ["application_id", "name"]
             }
         ),
         Tool(
@@ -153,8 +157,16 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
+            name="list_organizations",
+            description="List all organizations the user is a member of",
+            inputSchema={
+                "type": "object",
+                "properties": {}
+            }
+        ),
+        Tool(
             name="list_devices",
-            description="List all end devices in an application",
+            description="List all LoRaWAN end devices (sensors/nodes) in an application. Use this to: (1) See all devices in an application, (2) Find device IDs, (3) Get device overview with DevEUI, JoinEUI, status. Requires: application_id. Returns: Array of devices with IDs, names, descriptions, creation dates, and EUIs.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -168,7 +180,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="get_device",
-            description="Get detailed information about a specific end device",
+            description="Get complete details about a specific LoRaWAN device. Use when you need: (1) Full device configuration, (2) Device EUIs and IDs, (3) LoRaWAN settings (version, frequency plan), (4) MAC state, (5) Server registrations, (6) Last activity time. Requires: application_id and device_id. Returns: Complete device object with all registration details across Identity/Join/Network/Application servers.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -220,7 +232,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="create_otaa_device",
-            description="Create a fully configured OTAA device with registration in Identity Server, Join Server, Network Server, and Application Server",
+            description="RECOMMENDED for new devices: Create a complete OTAA LoRaWAN device ready for use. This tool performs 4 separate API calls to register the device in ALL required servers: (1) Identity Server (metadata), (2) Join Server (AppKey for OTAA), (3) Network Server (LoRaWAN version, frequency plan, MAC settings), (4) Application Server (session config). Use this instead of create_device for production devices. Requires: application_id, device_id, name, dev_eui (16-char hex), join_eui (16-char hex), app_key (32-char hex). Optional: lorawan_version (default: MAC_V1_0_3), frequency_plan_id (default: EU_863_870_TTN), supports_class_c. After successful creation, device is immediately ready for OTAA joins.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -292,7 +304,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="get_device_uplinks",
-            description="Get uplink messages from a device (recent data sent by the device)",
+            description="Retrieve recent uplink messages (data transmissions) from a device. Use this for: (1) Monitoring device activity, (2) Checking sensor data, (3) Debugging payload issues, (4) Viewing decoded payloads (if formatter is configured), (5) Seeing message metadata (RSSI, SNR, timestamp). Requires: application_id, device_id. Optional: limit (default 10, max depends on server). Returns: Array of uplink messages with raw payload, decoded payload (if formatter exists), FPort, timestamp, RX metadata (signal strength, gateway info).",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -339,6 +351,385 @@ async def list_tools() -> list[Tool]:
                 "required": ["gateway_id"]
             }
         ),
+        Tool(
+            name="get_gateway_status",
+            description="Get connection status and statistics for a gateway (from Gateway Server)",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "gateway_id": {
+                        "type": "string",
+                        "description": "The gateway ID"
+                    }
+                },
+                "required": ["gateway_id"]
+            }
+        ),
+        Tool(
+            name="create_gateway",
+            description="Create a new gateway in The Things Stack",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "string",
+                        "description": "User ID who owns the gateway (required if organization_id is not set)"
+                    },
+                    "organization_id": {
+                        "type": "string",
+                        "description": "Organization ID who owns the gateway (required if user_id is not set)"
+                    },
+                    "gateway_id": {
+                        "type": "string",
+                        "description": "Unique gateway identifier"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Human-readable gateway name"
+                    },
+                    "frequency_plan_id": {
+                        "type": "string",
+                        "description": "Frequency plan ID (e.g., EU_863_870_TTN)"
+                    },
+                    "gateway_eui": {
+                        "type": "string",
+                        "description": "Gateway EUI (optional)"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Gateway description (optional)"
+                    }
+                },
+                "required": ["gateway_id", "name", "frequency_plan_id"]
+            }
+        ),
+        Tool(
+            name="delete_gateway",
+            description="Delete a gateway from The Things Stack",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "gateway_id": {
+                        "type": "string",
+                        "description": "The gateway ID to delete"
+                    }
+                },
+                "required": ["gateway_id"]
+            }
+        ),
+        Tool(
+            name="get_user",
+            description="Get information about a specific user",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "string",
+                        "description": "The user ID"
+                    }
+                },
+                "required": ["user_id"]
+            }
+        ),
+        Tool(
+            name="list_webhooks",
+            description="List all webhooks for an application",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "description": "The application ID"
+                    }
+                },
+                "required": ["application_id"]
+            }
+        ),
+        Tool(
+            name="get_webhook",
+            description="Get details of a specific webhook",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "description": "The application ID"
+                    },
+                    "webhook_id": {
+                        "type": "string",
+                        "description": "The webhook ID"
+                    }
+                },
+                "required": ["application_id", "webhook_id"]
+            }
+        ),
+        Tool(
+            name="set_webhook",
+            description="Create or update a webhook for an application",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "description": "The application ID"
+                    },
+                    "webhook_id": {
+                        "type": "string",
+                        "description": "The webhook ID"
+                    },
+                    "base_url": {
+                        "type": "string",
+                        "description": "The base URL for the webhook"
+                    },
+                    "format": {
+                        "type": "string",
+                        "description": "Payload format (json, protobuf) - default: json"
+                    },
+                    "uplink_message": {
+                        "type": "object",
+                        "description": "Configuration for uplink messages (e.g., {'path': '/up'})"
+                    },
+                    "join_accept": {
+                        "type": "object",
+                        "description": "Configuration for join-accept messages"
+                    },
+                    "downlink_ack": {
+                        "type": "object",
+                        "description": "Configuration for downlink acks"
+                    },
+                    "downlink_nack": {
+                        "type": "object",
+                        "description": "Configuration for downlink nacks"
+                    },
+                    "downlink_sent": {
+                        "type": "object",
+                        "description": "Configuration for downlink sent"
+                    },
+                    "downlink_failed": {
+                        "type": "object",
+                        "description": "Configuration for downlink failed"
+                    },
+                    "downlink_queued": {
+                        "type": "object",
+                        "description": "Configuration for downlink queued"
+                    },
+                    "location_solved": {
+                        "type": "object",
+                        "description": "Configuration for location solved"
+                    },
+                    "service_data": {
+                        "type": "object",
+                        "description": "Configuration for service data"
+                    }
+                },
+                "required": ["application_id", "webhook_id", "base_url"]
+            }
+        ),
+        Tool(
+            name="delete_webhook",
+            description="Delete a webhook from an application",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "description": "The application ID"
+                    },
+                    "webhook_id": {
+                        "type": "string",
+                        "description": "The webhook ID"
+                    }
+                },
+                "required": ["application_id", "webhook_id"]
+            }
+        ),
+        # Helper tools for gRPC operations (generates commands)
+        Tool(
+            name="generate_formatter_command",
+            description="PAYLOAD FORMATTER SETUP TOOL: Generates ready-to-use commands to set JavaScript/CayenneLPP/Repository payload formatters on devices. Use this when user wants to: (1) Set a payload formatter/decoder, (2) Configure uplink/downlink formatting, (3) Add custom JavaScript decoder code. This tool DOES NOT execute the command - it generates it for the user to run manually (more reliable than direct API). Outputs: cURL command (default), TTS CLI command, or Python script based on command_type. Supports FORMATTER_JAVASCRIPT (with code up to 64KB), FORMATTER_CAYENNELPP, FORMATTER_REPOSITORY. The generated command is ready to copy and execute.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "description": "The application ID"
+                    },
+                    "device_id": {
+                        "type": "string",
+                        "description": "The device ID"
+                    },
+                    "formatter_type": {
+                        "type": "string",
+                        "description": "Formatter type: FORMATTER_JAVASCRIPT, FORMATTER_CAYENNELPP, FORMATTER_REPOSITORY"
+                    },
+                    "formatter_code": {
+                        "type": "string",
+                        "description": "JavaScript code for the formatter (if FORMATTER_JAVASCRIPT)"
+                    },
+                    "command_type": {
+                        "type": "string",
+                        "description": "Type of command to generate: curl, cli, python (default: curl)"
+                    }
+                },
+                "required": ["application_id", "device_id", "formatter_type"]
+            }
+        ),
+        Tool(
+            name="downlink_queue_push",
+            description="Add a downlink message to the device's queue",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "description": "The application ID"
+                    },
+                    "device_id": {
+                        "type": "string",
+                        "description": "The device ID"
+                    },
+                    "frm_payload": {
+                        "type": "string",
+                        "description": "Payload in base64 or hex format"
+                    },
+                    "f_port": {
+                        "type": "integer",
+                        "description": "FPort (1-223)"
+                    },
+                    "priority": {
+                        "type": "string",
+                        "description": "Priority: LOWEST, LOW, BELOW_NORMAL, NORMAL, ABOVE_NORMAL, HIGH, HIGHEST (default: NORMAL)"
+                    },
+                    "confirmed": {
+                        "type": "boolean",
+                        "description": "Request confirmation from device (default: false)"
+                    }
+                },
+                "required": ["application_id", "device_id", "frm_payload", "f_port"]
+            }
+        ),
+        Tool(
+            name="downlink_queue_list",
+            description="List pending downlink messages in the device's queue",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "description": "The application ID"
+                    },
+                    "device_id": {
+                        "type": "string",
+                        "description": "The device ID"
+                    }
+                },
+                "required": ["application_id", "device_id"]
+            }
+        ),
+        Tool(
+            name="downlink_queue_replace",
+            description="Replace the entire downlink queue with new messages",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "description": "The application ID"
+                    },
+                    "device_id": {
+                        "type": "string",
+                        "description": "The device ID"
+                    },
+                    "downlinks": {
+                        "type": "array",
+                        "description": "Array of downlink messages (each with frm_payload, f_port, priority, confirmed)"
+                    }
+                },
+                "required": ["application_id", "device_id", "downlinks"]
+            }
+        ),
+        Tool(
+            name="simulate_uplink",
+            description="Simulate an uplink message for testing (triggers formatters and integrations)",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "description": "The application ID"
+                    },
+                    "device_id": {
+                        "type": "string",
+                        "description": "The device ID"
+                    },
+                    "frm_payload": {
+                        "type": "string",
+                        "description": "Payload in base64 or hex format"
+                    },
+                    "f_port": {
+                        "type": "integer",
+                        "description": "FPort (1-223)"
+                    },
+                    "confirmed": {
+                        "type": "boolean",
+                        "description": "Confirmed uplink (default: false)"
+                    }
+                },
+                "required": ["application_id", "device_id", "frm_payload", "f_port"]
+            }
+        ),
+        Tool(
+            name="decode_uplink",
+            description="Test uplink payload formatter (decode a raw payload)",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "description": "The application ID"
+                    },
+                    "device_id": {
+                        "type": "string",
+                        "description": "The device ID (optional, uses application-level formatter if omitted)"
+                    },
+                    "frm_payload": {
+                        "type": "string",
+                        "description": "Raw payload in base64 format"
+                    },
+                    "f_port": {
+                        "type": "integer",
+                        "description": "FPort"
+                    }
+                },
+                "required": ["application_id", "frm_payload", "f_port"]
+            }
+        ),
+        Tool(
+            name="encode_downlink",
+            description="Test downlink payload formatter (encode JSON to raw payload)",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "description": "The application ID"
+                    },
+                    "device_id": {
+                        "type": "string",
+                        "description": "The device ID (optional, uses application-level formatter if omitted)"
+                    },
+                    "decoded_payload": {
+                        "type": "object",
+                        "description": "JSON object to encode"
+                    },
+                    "f_port": {
+                        "type": "integer",
+                        "description": "FPort"
+                    }
+                },
+                "required": ["application_id", "decoded_payload"]
+            }
+        ),
     ]
 
 
@@ -370,8 +761,12 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             )]
 
         elif name == "create_application":
-            user_id = arguments["user_id"]
             app_id = arguments["application_id"]
+            user_id = arguments.get("user_id")
+            org_id = arguments.get("organization_id")
+            
+            if not user_id and not org_id:
+                raise ValueError("Either user_id or organization_id must be provided")
 
             data = {
                 "application": {
@@ -385,7 +780,11 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             if "description" in arguments:
                 data["application"]["description"] = arguments["description"]
 
-            path = f"users/{user_id}/applications"
+            if user_id:
+                path = f"users/{user_id}/applications"
+            else:
+                path = f"organizations/{org_id}/applications"
+
             result = await tts_client.post(path, data)
             return [TextContent(
                 type="text",
@@ -401,6 +800,14 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
                 text=f"Application {app_id} deleted successfully"
             )]
 
+        elif name == "list_organizations":
+            path = "organizations"
+            result = await tts_client.get(path)
+            return [TextContent(
+                type="text",
+                text=json.dumps(result, indent=2)
+            )]
+            
         elif name == "list_devices":
             app_id = arguments["application_id"]
             path = f"applications/{app_id}/devices"
@@ -672,6 +1079,473 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             return [TextContent(
                 type="text",
                 text=json.dumps(result, indent=2)
+            )]
+
+        elif name == "get_gateway_status":
+            gw_id = arguments["gateway_id"]
+            # Gateway Server (GS) connection stats
+            path = f"gs/gateways/{gw_id}/connection/stats"
+            result = await tts_client.get(path)
+            return [TextContent(
+                type="text",
+                text=json.dumps(result, indent=2)
+            )]
+
+        elif name == "create_gateway":
+            gw_id = arguments["gateway_id"]
+            user_id = arguments.get("user_id")
+            org_id = arguments.get("organization_id")
+            
+            if not user_id and not org_id:
+                raise ValueError("Either user_id or organization_id must be provided")
+            
+            data = {
+                "gateway": {
+                    "ids": {
+                        "gateway_id": gw_id
+                    },
+                    "name": arguments["name"],
+                    "frequency_plan_id": arguments["frequency_plan_id"],
+                    "gateway_server_address": TTS_BASE_URL.replace("https://", "").replace("http://", "")
+                }
+            }
+
+            if "gateway_eui" in arguments:
+                data["gateway"]["ids"]["eui"] = arguments["gateway_eui"]
+                
+            if "description" in arguments:
+                data["gateway"]["description"] = arguments["description"]
+
+            if user_id:
+                path = f"users/{user_id}/gateways"
+            else:
+                path = f"organizations/{org_id}/gateways"
+                
+            result = await tts_client.post(path, data)
+            return [TextContent(
+                type="text",
+                text=json.dumps(result, indent=2)
+            )]
+
+        elif name == "delete_gateway":
+            gw_id = arguments["gateway_id"]
+            path = f"gateways/{gw_id}"
+            result = await tts_client.delete(path)
+            return [TextContent(
+                type="text",
+                text=f"Gateway {gw_id} deleted successfully"
+            )]
+
+        elif name == "get_user":
+            user_id = arguments["user_id"]
+            path = f"users/{user_id}"
+            result = await tts_client.get(path)
+            return [TextContent(
+                type="text",
+                text=json.dumps(result, indent=2)
+            )]
+            
+        elif name == "list_webhooks":
+            app_id = arguments["application_id"]
+            path = f"as/applications/{app_id}/webhooks"
+            result = await tts_client.get(path)
+            return [TextContent(
+                type="text",
+                text=json.dumps(result, indent=2)
+            )]
+
+        elif name == "get_webhook":
+            app_id = arguments["application_id"]
+            webhook_id = arguments["webhook_id"]
+            path = f"as/applications/{app_id}/webhooks/{webhook_id}"
+            result = await tts_client.get(path)
+            return [TextContent(
+                type="text",
+                text=json.dumps(result, indent=2)
+            )]
+
+        elif name == "set_webhook":
+            app_id = arguments["application_id"]
+            webhook_id = arguments["webhook_id"]
+            
+            webhook_data = {
+                "ids": {
+                    "webhook_id": webhook_id
+                },
+                "base_url": arguments["base_url"],
+                "format": arguments.get("format", "json")
+            }
+            
+            field_paths = ["base_url", "format"]
+            
+            # Map optional message types
+            message_types = [
+                "uplink_message", "join_accept", "downlink_ack", "downlink_nack", 
+                "downlink_sent", "downlink_failed", "downlink_queued", 
+                "location_solved", "service_data"
+            ]
+            
+            for msg_type in message_types:
+                if msg_type in arguments:
+                    webhook_data[msg_type] = arguments[msg_type]
+                    field_paths.append(msg_type)
+            
+            data = {
+                "webhook": webhook_data,
+                "field_mask": {
+                    "paths": field_paths
+                }
+            }
+            
+            path = f"as/applications/{app_id}/webhooks/{webhook_id}"
+            result = await tts_client.put(path, data)
+            return [TextContent(
+                type="text",
+                text=json.dumps(result, indent=2)
+            )]
+
+        elif name == "delete_webhook":
+            app_id = arguments["application_id"]
+            webhook_id = arguments["webhook_id"]
+            path = f"as/applications/{app_id}/webhooks/{webhook_id}"
+            result = await tts_client.delete(path)
+            return [TextContent(
+                type="text",
+                text=f"Webhook {webhook_id} deleted successfully"
+            )]
+
+        # Helper tools - generate commands for gRPC operations
+        elif name == "generate_formatter_command":
+            app_id = arguments["application_id"]
+            dev_id = arguments["device_id"]
+            formatter_type = arguments["formatter_type"]
+            formatter_code = arguments.get("formatter_code", "")
+            command_type = arguments.get("command_type", "curl")
+
+            base_url = TTS_BASE_URL.rstrip("/")
+
+            if command_type == "curl":
+                # Generate cURL command
+                if formatter_code:
+                    # Escape single quotes in formatter code for shell
+                    escaped_code = formatter_code.replace("'", "'\\''")
+
+                    curl_cmd = f'''curl -X PUT \\
+  -H "Authorization: Bearer $TTS_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{{
+    "end_device": {{
+      "ids": {{
+        "device_id": "{dev_id}",
+        "application_ids": {{
+          "application_id": "{app_id}"
+        }}
+      }},
+      "formatters": {{
+        "up_formatter": "{formatter_type}",
+        "up_formatter_parameter": {json.dumps(formatter_code)}
+      }}
+    }},
+    "field_mask": {{
+      "paths": ["formatters"]
+    }}
+  }}' \\
+  "{base_url}/api/v3/as/applications/{app_id}/devices/{dev_id}"'''
+                else:
+                    curl_cmd = f'''curl -X PUT \\
+  -H "Authorization: Bearer $TTS_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{{
+    "end_device": {{
+      "ids": {{
+        "device_id": "{dev_id}",
+        "application_ids": {{
+          "application_id": "{app_id}"
+        }}
+      }},
+      "formatters": {{
+        "up_formatter": "{formatter_type}"
+      }}
+    }},
+    "field_mask": {{
+      "paths": ["formatters"]
+    }}
+  }}' \\
+  "{base_url}/api/v3/as/applications/{app_id}/devices/{dev_id}"'''
+
+                return [TextContent(
+                    type="text",
+                    text=f"📋 cURL Command zum Setzen des Formatters:\n\n```bash\n{curl_cmd}\n```\n\n" +
+                         f"💡 Hinweise:\n" +
+                         f"- Setze TTS_API_KEY als Environment Variable: export TTS_API_KEY=your-api-key\n" +
+                         f"- Oder ersetze $TTS_API_KEY direkt im Command\n" +
+                         f"- Formatter Type: {formatter_type}\n" +
+                         f"- Code Größe: {len(formatter_code)} Zeichen"
+                )]
+
+            elif command_type == "cli":
+                # Generate TTS CLI command
+                if formatter_code:
+                    cli_cmd = f'''# Speichere den Formatter Code in einer Datei
+cat > formatter.js << 'EOF'
+{formatter_code}
+EOF
+
+# Setze den Formatter mit TTS CLI
+ttn-lw-cli end-devices set {dev_id} \\
+  --application-id {app_id} \\
+  --formatters.up-formatter {formatter_type} \\
+  --formatters.up-formatter-parameter ./formatter.js'''
+                else:
+                    cli_cmd = f'''ttn-lw-cli end-devices set {dev_id} \\
+  --application-id {app_id} \\
+  --formatters.up-formatter {formatter_type}'''
+
+                return [TextContent(
+                    type="text",
+                    text=f"📋 TTS CLI Command:\n\n```bash\n{cli_cmd}\n```\n\n" +
+                         f"💡 CLI Installation:\n" +
+                         f"```bash\n" +
+                         f"curl -L https://github.com/TheThingsNetwork/lorawan-stack/releases/latest/download/ttn-lw-cli-linux-amd64.zip -o ttn-cli.zip\n" +
+                         f"unzip ttn-cli.zip\n" +
+                         f"```"
+                )]
+
+            elif command_type == "python":
+                # Generate Python script
+                python_script = f'''import requests
+import json
+
+TTS_HOST = "{base_url}"
+API_KEY = "your-api-key-here"  # Ersetze mit deinem API Key
+APP_ID = "{app_id}"
+DEVICE_ID = "{dev_id}"
+
+# Formatter Code
+formatter_code = """{formatter_code}"""
+
+# Prepare Payload
+payload = {{
+    "end_device": {{
+        "ids": {{
+            "device_id": DEVICE_ID,
+            "application_ids": {{
+                "application_id": APP_ID
+            }}
+        }},
+        "formatters": {{
+            "up_formatter": "{formatter_type}",
+            "up_formatter_parameter": formatter_code
+        }}
+    }},
+    "field_mask": {{
+        "paths": ["formatters"]
+    }}
+}}
+
+# Send Request
+headers = {{
+    "Authorization": f"Bearer {{API_KEY}}",
+    "Content-Type": "application/json"
+}}
+
+url = f"{{TTS_HOST}}/api/v3/as/applications/{{APP_ID}}/devices/{{DEVICE_ID}}"
+
+response = requests.put(url, json=payload, headers=headers)
+
+if response.status_code == 200:
+    print("✅ Formatter erfolgreich gesetzt!")
+    print(response.json())
+else:
+    print(f"❌ Fehler: {{response.status_code}}")
+    print(response.text)
+'''
+
+                return [TextContent(
+                    type="text",
+                    text=f"📋 Python Script:\n\n```python\n{python_script}\n```\n\n" +
+                         f"💡 Verwendung:\n" +
+                         f"1. Speichere als `set_formatter.py`\n" +
+                         f"2. Installiere requests: `pip install requests`\n" +
+                         f"3. Ersetze API-Key\n" +
+                         f"4. Führe aus: `python set_formatter.py`"
+                )]
+
+        # gRPC-specific tools (via HTTP/gRPC Gateway)
+        # NOTE: These may not work on all TTS installations
+        elif name == "set_device_formatters":
+            app_id = arguments["application_id"]
+            dev_id = arguments["device_id"]
+
+            # Build payload for AsEndDeviceRegistry.Set
+            end_device = {
+                "ids": {
+                    "device_id": dev_id,
+                    "application_ids": {
+                        "application_id": app_id
+                    }
+                }
+            }
+
+            field_paths = []
+
+            # Set uplink formatter if provided
+            if "uplink_formatter" in arguments:
+                if "formatters" not in end_device:
+                    end_device["formatters"] = {}
+                end_device["formatters"]["up_formatter"] = arguments["uplink_formatter"]
+                field_paths.append("formatters.up_formatter")
+
+                if "uplink_formatter_parameter" in arguments:
+                    end_device["formatters"]["up_formatter_parameter"] = arguments["uplink_formatter_parameter"]
+                    field_paths.append("formatters.up_formatter_parameter")
+
+            # Set downlink formatter if provided
+            if "downlink_formatter" in arguments:
+                if "formatters" not in end_device:
+                    end_device["formatters"] = {}
+                end_device["formatters"]["down_formatter"] = arguments["downlink_formatter"]
+                field_paths.append("formatters.down_formatter")
+
+                if "downlink_formatter_parameter" in arguments:
+                    end_device["formatters"]["down_formatter_parameter"] = arguments["downlink_formatter_parameter"]
+                    field_paths.append("formatters.down_formatter_parameter")
+
+            data = {
+                "end_device": end_device,
+                "field_mask": {
+                    "paths": field_paths
+                }
+            }
+
+            path = f"as/applications/{app_id}/devices/{dev_id}"
+            result = await tts_client.put(path, data)
+            return [TextContent(
+                type="text",
+                text=f"✅ Payload formatters updated for device '{dev_id}':\n\n{json.dumps(result, indent=2)}"
+            )]
+
+        elif name == "downlink_queue_push":
+            app_id = arguments["application_id"]
+            dev_id = arguments["device_id"]
+
+            downlink = {
+                "f_port": arguments["f_port"],
+                "frm_payload": arguments["frm_payload"],
+                "priority": arguments.get("priority", "NORMAL"),
+                "confirmed": arguments.get("confirmed", False)
+            }
+
+            data = {
+                "downlinks": [downlink]
+            }
+
+            path = f"as/applications/{app_id}/devices/{dev_id}/down/push"
+            result = await tts_client.post(path, data)
+            return [TextContent(
+                type="text",
+                text=f"✅ Downlink queued successfully:\n\n{json.dumps(result, indent=2)}"
+            )]
+
+        elif name == "downlink_queue_list":
+            app_id = arguments["application_id"]
+            dev_id = arguments["device_id"]
+
+            path = f"as/applications/{app_id}/devices/{dev_id}/down"
+            result = await tts_client.get(path)
+            return [TextContent(
+                type="text",
+                text=json.dumps(result, indent=2)
+            )]
+
+        elif name == "downlink_queue_replace":
+            app_id = arguments["application_id"]
+            dev_id = arguments["device_id"]
+            downlinks = arguments["downlinks"]
+
+            data = {
+                "downlinks": downlinks
+            }
+
+            path = f"as/applications/{app_id}/devices/{dev_id}/down/replace"
+            result = await tts_client.post(path, data)
+            return [TextContent(
+                type="text",
+                text=f"✅ Downlink queue replaced with {len(downlinks)} message(s):\n\n{json.dumps(result, indent=2)}"
+            )]
+
+        elif name == "simulate_uplink":
+            app_id = arguments["application_id"]
+            dev_id = arguments["device_id"]
+
+            uplink = {
+                "f_port": arguments["f_port"],
+                "frm_payload": arguments["frm_payload"],
+                "confirmed": arguments.get("confirmed", False),
+                "rx_metadata": arguments.get("rx_metadata", [])
+            }
+
+            data = {
+                "end_device_ids": {
+                    "device_id": dev_id,
+                    "application_ids": {
+                        "application_id": app_id
+                    }
+                },
+                "uplink_message": uplink
+            }
+
+            path = f"as/applications/{app_id}/devices/{dev_id}/up/simulate"
+            result = await tts_client.post(path, data)
+            return [TextContent(
+                type="text",
+                text=f"✅ Uplink simulated successfully:\n\n{json.dumps(result, indent=2)}"
+            )]
+
+        elif name == "decode_uplink":
+            app_id = arguments["application_id"]
+            dev_id = arguments.get("device_id")
+
+            data = {
+                "f_port": arguments["f_port"],
+                "frm_payload": arguments["frm_payload"]
+            }
+
+            if dev_id:
+                # Use device-specific formatter
+                path = f"as/applications/{app_id}/devices/{dev_id}/up/decode"
+            else:
+                # Use application-level formatter
+                path = f"as/applications/{app_id}/up/decode"
+
+            result = await tts_client.post(path, data)
+            return [TextContent(
+                type="text",
+                text=f"✅ Uplink decoded:\n\n{json.dumps(result, indent=2)}"
+            )]
+
+        elif name == "encode_downlink":
+            app_id = arguments["application_id"]
+            dev_id = arguments.get("device_id")
+
+            data = {
+                "decoded_payload": arguments["decoded_payload"]
+            }
+
+            if "f_port" in arguments:
+                data["f_port"] = arguments["f_port"]
+
+            if dev_id:
+                # Use device-specific formatter
+                path = f"as/applications/{app_id}/devices/{dev_id}/down/encode"
+            else:
+                # Use application-level formatter
+                path = f"as/applications/{app_id}/down/encode"
+
+            result = await tts_client.post(path, data)
+            return [TextContent(
+                type="text",
+                text=f"✅ Downlink encoded:\n\n{json.dumps(result, indent=2)}"
             )]
 
         else:

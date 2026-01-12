@@ -1,55 +1,46 @@
 # The Things Stack MCP Server
 
-MCP (Model Context Protocol) Server für die [The Things Stack](https://www.thethingsindustries.com/) HTTP API. Dieser Server ermöglicht die Interaktion mit The Things Industries LoRaWAN-Plattform über standardisierte MCP-Tools.
+MCP (Model Context Protocol) Server for the [The Things Stack](https://www.thethingsindustries.com/) HTTP API. This server enables interaction with The Things Industries LoRaWAN platform via standardized MCP tools.
 
 ## Features
 
-Der MCP-Server bietet folgende Tools:
+The MCP server offers a wide range of tools for managing your LoRaWAN infrastructure:
 
-### Applications
-- `list_applications` - Liste alle Applications
-- `get_application` - Details einer Application abrufen
-- `create_application` - Neue Application erstellen
-- `delete_application` - Application löschen
+*   **Application Management**: Create, list, delete, and inspect applications.
+*   **Device Management**: Comprehensive device lifecycle management including `create_otaa_device` which handles registration across Identity, Join, Network, and Application servers in one go.
+*   **Gateway Management**: List, inspect, create and delete gateways.
+*   **User Management**: Retrieve user details.
+*   **Webhook Integrations**: Manage webhooks for applications to integrate with external systems.
+*   **Messaging**: View historical uplinks, simulate uplinks, and manage downlink queues.
+*   **Payload Formatters**: Generate commands to configure formatters or test them directly.
 
-### Devices
-- `list_devices` - Liste alle Devices einer Application
-- `get_device` - Details eines Devices abrufen
-- `create_device` - Neues Device registrieren (basis)
-- `create_otaa_device` - OTAA-Device vollständig registrieren (Identity Server, Join Server, Network Server, Application Server)
-- `delete_device` - Device löschen
-- `get_device_uplinks` - Uplink-Nachrichten eines Devices abrufen
+## Prerequisites
 
-### Gateways
-- `list_gateways` - Liste alle Gateways
-- `get_gateway` - Details eines Gateways abrufen
+- Docker and Docker Compose installed
+- An account on [The Things Stack](https://www.thethingsindustries.com/) or a private instance
+- An API Key with appropriate permissions
 
-## Voraussetzungen
+## Creating an API Key
 
-- Docker und Docker Compose installiert
-- Ein Account bei [The Things Stack](https://www.thethingsindustries.com/) oder einer eigenen Instanz
-- Ein API-Key mit entsprechenden Berechtigungen
-
-## API-Key erstellen
-
-1. Melde dich in der [Things Stack Console](https://console.cloud.thethings.network/) an
-2. Gehe zu deinem Benutzerprofil (User Settings)
-3. Navigiere zu **API Keys**
-4. Klicke auf **Add API Key**
-5. Vergib einen Namen (z.B. "MCP Server")
-6. Wähle folgende Berechtigungen:
+1. Log in to the [Things Stack Console](https://console.cloud.thethings.network/)
+2. Go to your User Settings (Profile)
+3. Navigate to **API Keys**
+4. Click **Add API Key**
+5. Give it a name (e.g., "MCP Server")
+6. Select the following permissions:
    - Applications: Read & Write
    - Devices: Read & Write
    - Gateways: Read & Write
-7. Kopiere den generierten API-Key (Format: `NNSXS.XXX...`)
+   - Users: Read
+7. Copy the generated API Key (Format: `NNSXS.XXX...`)
 
 ## Quick Start
 
 ```bash
-# 1. Docker Image bauen
+# 1. Build Docker Image
 docker build -t things-stack-mcp .
 
-# 2. Testen (ersetze die Placeholder-Werte!)
+# 2. Test (replace placeholder values!)
 export TTS_BASE_URL=https://eu1.cloud.thethings.network
 export TTS_API_KEY=NNSXS.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ./test_server.sh
@@ -57,45 +48,45 @@ export TTS_API_KEY=NNSXS.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 ## Installation & Setup
 
-### 1. Repository klonen / Dateien erstellen
+### 1. Clone Repository / Create Files
 
-Stelle sicher, dass alle Dateien im Projektverzeichnis vorhanden sind:
+Ensure all files are present in the project directory:
 ```
-├── server.py                            # MCP-Server Implementation
-├── requirements.txt                     # Python-Abhängigkeiten
+├── server.py                            # MCP Server Implementation
+├── requirements.txt                     # Python Dependencies
 ├── Dockerfile                           # Docker Image Definition
-├── docker-compose.yml                   # Docker Compose Konfiguration
-├── claude_desktop_config.example.json   # Claude Desktop Beispielkonfiguration
-├── test_server.sh                       # Test-Skript
-├── run_example.sh                       # Interaktives Start-Skript
-└── README.md                            # Diese Datei
+├── docker-compose.yml                   # Docker Compose Configuration
+├── claude_desktop_config.example.json   # Claude Desktop Example Config
+├── test_server.sh                       # Test Script
+├── run_example.sh                       # Interactive Start Script
+└── README.md                            # This file
 ```
 
-### 2. Docker Image bauen
+### 2. Build Docker Image
 
 ```bash
 docker build -t things-stack-mcp .
 ```
 
-### 3. Konfiguration
+### 3. Configuration
 
-**Verfügbare Regions:**
-- Europa: `https://eu1.cloud.thethings.network`
-- Nordamerika: `https://nam1.cloud.thethings.network`
-- Australien: `https://au1.cloud.thethings.network`
-- Eigene Instanz: `https://your-instance.example.com`
+**Available Regions:**
+- Europe: `https://eu1.cloud.thethings.network`
+- North America: `https://nam1.cloud.thethings.network`
+- Australia: `https://au1.cloud.thethings.network`
+- Private Instance: `https://your-instance.example.com`
 
-Die Umgebungsvariablen werden direkt im Docker-Aufruf angegeben (siehe nächster Abschnitt).
+Environment variables are passed directly in the Docker run command (see next section).
 
-## Verwendung
+## Usage
 
-### Mit MCP-kompatiblen Clients
+### With MCP-compatible Clients
 
-Der Server kann mit jedem MCP-kompatiblen Client verwendet werden (z.B. Claude Desktop App).
+The server can be used with any MCP-compatible client (e.g., Claude Desktop App).
 
-#### Konfiguration für Claude Desktop
+#### Claude Desktop Configuration
 
-Füge in der Claude Desktop Konfiguration folgendes hinzu:
+Add the following to your Claude Desktop configuration:
 
 **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
@@ -121,30 +112,30 @@ Füge in der Claude Desktop Konfiguration folgendes hinzu:
 }
 ```
 
-**Wichtig:** Ersetze `NNSXS.XXX...` mit deinem echten API-Key und passe die Region an.
+**Important:** Replace `NNSXS.XXX...` with your actual API key and adjust the region if necessary.
 
-**Tipp:** Du kannst die Datei `claude_desktop_config.example.json` als Vorlage verwenden.
+**Tip:** You can use `claude_desktop_config.example.json` as a template.
 
-### Interaktiver Start
+### Interactive Start
 
-Nutze das interaktive Skript für einfache Konfiguration:
+Use the interactive script for easy configuration:
 
 ```bash
 ./run_example.sh
 ```
 
-Das Skript fragt nach deiner Region und dem API-Key und startet den Server.
+The script will ask for your region and API key, then start the server.
 
-### Direkter Test mit Docker
+### Direct Test with Docker
 
 ```bash
-# Server interaktiv starten
+# Start server interactively
 docker run --rm -i \
   -e TTS_BASE_URL=https://eu1.cloud.thethings.network \
   -e TTS_API_KEY=NNSXS.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \
   things-stack-mcp
 
-# Beispiel: Applications auflisten
+# Example: List Applications
 echo '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"list_applications","arguments":{}},"id":1}' | \
 docker run --rm -i \
   -e TTS_BASE_URL=https://eu1.cloud.thethings.network \
@@ -152,23 +143,23 @@ docker run --rm -i \
   things-stack-mcp
 ```
 
-## Beispiele
+## Examples
 
-### Application erstellen
+### Create Application
 
 ```json
 {
   "name": "create_application",
   "arguments": {
-    "user_id": "dein-user-id",
+    "user_id": "your-user-id",
     "application_id": "my-app",
-    "name": "Meine Application",
+    "name": "My Application",
     "description": "Test Application"
   }
 }
 ```
 
-### OTAA-Device vollständig registrieren (empfohlen)
+### Create OTAA Device (Recommended)
 
 ```json
 {
@@ -188,54 +179,81 @@ docker run --rm -i \
 }
 ```
 
-Dieses Tool führt **4 separate API-Calls** aus, um das Device in allen benötigten Servern zu registrieren:
+This tool executes **4 separate API calls** to register the device across all required servers:
 
-1. **POST** `/api/v3/applications/{app_id}/devices` - Identity Server
-   - Metadaten (Name, IDs, Description)
-   - Server-Adressen
+1.  **POST** `/api/v3/applications/{app_id}/devices` - Identity Server
+    - Metadata (Name, IDs, Description)
+    - Server addresses
 
-2. **PUT** `/api/v3/js/applications/{app_id}/devices/{device_id}` - Join Server
-   - Root Keys (AppKey für OTAA)
-   - Authentifizierung
+2.  **PUT** `/api/v3/js/applications/{app_id}/devices/{device_id}` - Join Server
+    - Root Keys (AppKey for OTAA)
+    - Authentication
 
-3. **PUT** `/api/v3/ns/applications/{app_id}/devices/{device_id}` - Network Server
-   - MAC-Settings
-   - LoRaWAN-Version & PHY-Version
-   - Frequency Plan
-   - Class B/C Support
+3.  **PUT** `/api/v3/ns/applications/{app_id}/devices/{device_id}` - Network Server
+    - MAC Settings
+    - LoRaWAN Version & PHY Version
+    - Frequency Plan
+    - Class B/C Support
 
-4. **PUT** `/api/v3/as/applications/{app_id}/devices/{device_id}` - Application Server
-   - Device-IDs
-   - Session-Konfiguration
+4.  **PUT** `/api/v3/as/applications/{app_id}/devices/{device_id}` - Application Server
+    - Device IDs
+    - Session Configuration
 
-**Wichtige Parameter:**
-- `app_key`: 32-stelliger Hex-String (128-bit Schlüssel)
-- `dev_eui` & `join_eui`: 16-stellige Hex-Strings (64-bit)
-- `frequency_plan_id`: Gängige Werte:
-  - `EU_863_870_TTN` - Europa (Standard)
+**Important Parameters:**
+- `app_key`: 32-digit hex string (128-bit key)
+- `dev_eui` & `join_eui`: 16-digit hex strings (64-bit)
+- `frequency_plan_id`: Common values:
+  - `EU_863_870_TTN` - Europe (Default)
   - `US_902_928` - USA
-  - `AU_915_928` - Australien
-  - `AS_923` - Asien
+  - `AU_915_928` - Australia
+  - `AS_923` - Asia
 - `lorawan_version`: `MAC_V1_0_2`, `MAC_V1_0_3`, `MAC_V1_0_4`, `MAC_V1_1`
 
-### Device registrieren (basis)
+### Create Webhook
 
 ```json
 {
-  "name": "create_device",
+  "name": "set_webhook",
   "arguments": {
     "application_id": "my-app",
-    "device_id": "my-device-01",
-    "name": "Sensor 01",
-    "dev_eui": "70B3D57ED0000001",
-    "join_eui": "0000000000000000"
+    "webhook_id": "my-integration",
+    "base_url": "https://myserver.com/webhook",
+    "format": "json",
+    "uplink_message": {
+      "path": "/up"
+    },
+    "join_accept": {
+      "path": "/join"
+    }
   }
 }
 ```
 
-**Hinweis**: Verwende besser `create_otaa_device` für eine vollständige Registrierung.
+### Set Payload Formatter (Command Generator)
 
-### Uplink-Daten abrufen
+```json
+{
+  "name": "generate_formatter_command",
+  "arguments": {
+    "application_id": "my-app",
+    "device_id": "my-device-01",
+    "formatter_type": "FORMATTER_JAVASCRIPT",
+    "formatter_code": "function decodeUplink(input) { return {data: {temp: input.bytes[0]}}; }",
+    "command_type": "curl"
+  }
+}
+```
+
+**Output:** Ready-to-use cURL command to copy & execute.
+
+**Available Command Types:**
+- `curl` - cURL Command (Default)
+- `cli` - The Things Stack CLI Command
+- `python` - Python Script
+
+The tool generates **ready-to-use commands** that you can execute directly, as direct API calls might not work on all TTS installations.
+
+### Retrieve Uplink Data
 
 ```json
 {
@@ -248,60 +266,60 @@ Dieses Tool führt **4 separate API-Calls** aus, um das Device in allen benötig
 }
 ```
 
-## Entwicklung
+## Development
 
-### Lokale Entwicklung ohne Docker
+### Local Development without Docker
 
 ```bash
-# Virtual Environment erstellen
+# Create Virtual Environment
 python3 -m venv venv
-source venv/bin/activate  # Auf Windows: venv\Scripts\activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Dependencies installieren
+# Install Dependencies
 pip install -r requirements.txt
 
-# Environment-Variablen setzen
+# Set Environment Variables
 export TTS_BASE_URL=https://eu1.cloud.thethings.network
 export TTS_API_KEY=NNSXS.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-# Server starten
+# Start Server
 python server.py
 ```
 
 ## Troubleshooting
 
-### Authentifizierungsfehler (401)
-- Überprüfe, ob dein API-Key korrekt angegeben ist
-- Stelle sicher, dass der API-Key die erforderlichen Berechtigungen hat
-- Prüfe, ob der API-Key noch gültig ist
-- Der API-Key sollte mit `NNSXS.` beginnen
+### Authentication Errors (401)
+- Verify your API Key is correct
+- Ensure the API Key has the required permissions
+- Check if the API Key is still valid
+- The API Key should start with `NNSXS.`
 
-### Verbindungsfehler
-- Überprüfe die `TTS_BASE_URL` (muss mit `https://` beginnen)
-- Stelle sicher, dass du die richtige Region verwendest
-- Prüfe deine Netzwerkverbindung
-- Bei selbst-gehosteten Instanzen: Prüfe Firewall und SSL-Zertifikate
+### Connection Errors
+- Check `TTS_BASE_URL` (must start with `https://`)
+- Ensure you are using the correct region
+- Check your network connection
+- For self-hosted instances: Check Firewall and SSL certificates
 
-### Device kann nicht erstellt werden
-- `dev_eui` und `join_eui` müssen gültige 64-bit Hex-Strings sein (16 Zeichen)
-- `device_id` darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten
-- Die Application muss bereits existieren
+### Device Creation Failed
+- `dev_eui` and `join_eui` must be valid 64-bit hex strings (16 characters)
+- `device_id` must only contain lowercase letters, numbers, and dashes
+- The Application must already exist
 
-### MCP Server startet nicht in Claude Desktop
-- Prüfe die JSON-Syntax in der Claude Desktop Konfiguration
-- Stelle sicher, dass das Docker-Image gebaut wurde: `docker build -t things-stack-mcp .`
-- Prüfe die Docker-Logs: `docker logs <container-id>`
+### MCP Server Not Starting in Claude Desktop
+- Check JSON syntax in Claude Desktop configuration
+- Ensure Docker image is built: `docker build -t things-stack-mcp .`
+- Check Docker logs: `docker logs <container-id>`
 
-## API-Referenzen
+## API References
 
-- [The Things Stack HTTP API Dokumentation](https://www.thethingsindustries.com/docs/api/reference/http/)
+- [The Things Stack HTTP API Documentation](https://www.thethingsindustries.com/docs/api/reference/http/)
 - [Authentication](https://www.thethingsindustries.com/docs/api/concepts/auth/)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
 
-## Lizenz
+## License
 
 MIT
 
-## Autor
+## Author
 
-Erstellt mit Claude Code
+Created with Claude Code
