@@ -3,6 +3,7 @@ version: '3.8'
 services:
   mcp-server:
     build: .
+    image: things-stack-mcp
     container_name: things-stack-mcp
     environment:
       # Setze diese Werte direkt hier oder über Umgebungsvariablen

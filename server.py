@@ -8,7 +8,6 @@ import os
 import json
 import asyncio
 from typing import Any, Optional
-from urllib.parse import urljoin
 
 import httpx
 from mcp.server import Server
@@ -70,6 +69,27 @@ class ThingsStackClient:
         response = await self.client.delete(url)
         response.raise_for_status()
         return response.json() if response.text else {"status": "deleted"}
+
+    async def get_ndjson(self, path: str, params: Optional[dict] = None) -> list:
+        """Execute GET request, parse NDJSON (newline-delimited JSON) response"""
+        url = self._build_url(path)
+        response = await self.client.get(url, params=params)
+        response.raise_for_status()
+        messages = []
+        for line in response.text.strip().split('\n'):
+            if line.strip():
+                try:
+                    messages.append(json.loads(line))
+                except json.JSONDecodeError:
+                    pass
+        return messages
+
+    async def patch(self, path: str, data: dict) -> dict:
+        """Execute PATCH request"""
+        url = self._build_url(path)
+        response = await self.client.patch(url, json=data)
+        response.raise_for_status()
+        return response.json()
 
     async def close(self):
         """Close HTTP client"""
@@ -730,6 +750,242 @@ async def list_tools() -> list[Tool]:
                 "required": ["application_id", "decoded_payload"]
             }
         ),
+        Tool(
+            name="set_device_formatters",
+            description="Set payload formatters for a specific device (uplink decoder / downlink encoder JavaScript). Use this to configure how raw LoRaWAN payloads are decoded/encoded. Supports FORMATTER_JAVASCRIPT (custom JS code), FORMATTER_CAYENNELPP, FORMATTER_REPOSITORY, FORMATTER_NONE. The uplink formatter receives bytes and returns a JSON object. The downlink formatter receives a JSON object and returns bytes.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "description": "The application ID"
+                    },
+                    "device_id": {
+                        "type": "string",
+                        "description": "The device ID"
+                    },
+                    "uplink_formatter": {
+                        "type": "string",
+                        "description": "Uplink formatter type: FORMATTER_JAVASCRIPT, FORMATTER_CAYENNELPP, FORMATTER_REPOSITORY, FORMATTER_NONE"
+                    },
+                    "uplink_formatter_parameter": {
+                        "type": "string",
+                        "description": "JavaScript code for uplink decoder (if FORMATTER_JAVASCRIPT)"
+                    },
+                    "downlink_formatter": {
+                        "type": "string",
+                        "description": "Downlink formatter type: FORMATTER_JAVASCRIPT, FORMATTER_CAYENNELPP, FORMATTER_REPOSITORY, FORMATTER_NONE"
+                    },
+                    "downlink_formatter_parameter": {
+                        "type": "string",
+                        "description": "JavaScript code for downlink encoder (if FORMATTER_JAVASCRIPT)"
+                    }
+                },
+                "required": ["application_id", "device_id"]
+            }
+        ),
+        Tool(
+            name="set_application_formatters",
+            description="Set payload formatters at the application level. All devices that do not have device-specific formatters will use these application-level formatters. Useful for standardizing decoding across all devices in an application.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "description": "The application ID"
+                    },
+                    "uplink_formatter": {
+                        "type": "string",
+                        "description": "Uplink formatter type: FORMATTER_JAVASCRIPT, FORMATTER_CAYENNELPP, FORMATTER_REPOSITORY, FORMATTER_NONE"
+                    },
+                    "uplink_formatter_parameter": {
+                        "type": "string",
+                        "description": "JavaScript code for uplink decoder (if FORMATTER_JAVASCRIPT)"
+                    },
+                    "downlink_formatter": {
+                        "type": "string",
+                        "description": "Downlink formatter type: FORMATTER_JAVASCRIPT, FORMATTER_CAYENNELPP, FORMATTER_REPOSITORY, FORMATTER_NONE"
+                    },
+                    "downlink_formatter_parameter": {
+                        "type": "string",
+                        "description": "JavaScript code for downlink encoder (if FORMATTER_JAVASCRIPT)"
+                    }
+                },
+                "required": ["application_id"]
+            }
+        ),
+        Tool(
+            name="update_application",
+            description="Update an existing application's name, description, or attributes",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "description": "The application ID to update"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "New human-readable name"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "New description"
+                    },
+                    "attributes": {
+                        "type": "object",
+                        "description": "Key-value attributes (string keys and values)"
+                    }
+                },
+                "required": ["application_id"]
+            }
+        ),
+        Tool(
+            name="update_device",
+            description="Update an existing end device's name, description, or basic attributes",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string",
+                        "description": "The application ID"
+                    },
+                    "device_id": {
+                        "type": "string",
+                        "description": "The device ID to update"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "New human-readable name"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "New description"
+                    },
+                    "attributes": {
+                        "type": "object",
+                        "description": "Key-value attributes (string keys and values)"
+                    }
+                },
+                "required": ["application_id", "device_id"]
+            }
+        ),
+        Tool(
+            name="update_gateway",
+            description="Update an existing gateway's name, description, location, or other settings",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "gateway_id": {
+                        "type": "string",
+                        "description": "The gateway ID to update"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "New human-readable name"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "New description"
+                    },
+                    "attributes": {
+                        "type": "object",
+                        "description": "Key-value attributes"
+                    },
+                    "location_latitude": {
+                        "type": "number",
+                        "description": "GPS latitude"
+                    },
+                    "location_longitude": {
+                        "type": "number",
+                        "description": "GPS longitude"
+                    },
+                    "location_altitude": {
+                        "type": "integer",
+                        "description": "Altitude in meters"
+                    }
+                },
+                "required": ["gateway_id"]
+            }
+        ),
+        Tool(
+            name="list_api_keys",
+            description="List API keys for an application, gateway, or user. Use this to view existing API keys and their rights.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "entity_type": {
+                        "type": "string",
+                        "description": "Entity type: 'application', 'gateway', or 'user'"
+                    },
+                    "entity_id": {
+                        "type": "string",
+                        "description": "The entity ID (application_id, gateway_id, or user_id)"
+                    }
+                },
+                "required": ["entity_type", "entity_id"]
+            }
+        ),
+        Tool(
+            name="create_api_key",
+            description="Create a new API key for an application or gateway with specified rights",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "entity_type": {
+                        "type": "string",
+                        "description": "Entity type: 'application', 'gateway', or 'user'"
+                    },
+                    "entity_id": {
+                        "type": "string",
+                        "description": "The entity ID"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Human-readable name for the API key"
+                    },
+                    "rights": {
+                        "type": "array",
+                        "description": "List of rights, e.g. ['RIGHT_APPLICATION_INFO', 'RIGHT_APPLICATION_DEVICES_READ', 'RIGHT_APPLICATION_TRAFFIC_READ']. For gateways: ['RIGHT_GATEWAY_INFO', 'RIGHT_GATEWAY_STATUS_READ', 'RIGHT_GATEWAY_TRAFFIC_READ']. Use 'RIGHT_ALL' for all rights."
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "description": "Expiry date in RFC3339 format (optional, e.g. '2025-12-31T23:59:59Z')"
+                    }
+                },
+                "required": ["entity_type", "entity_id", "name", "rights"]
+            }
+        ),
+        Tool(
+            name="delete_api_key",
+            description="Delete an API key from an application, gateway, or user",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "entity_type": {
+                        "type": "string",
+                        "description": "Entity type: 'application', 'gateway', or 'user'"
+                    },
+                    "entity_id": {
+                        "type": "string",
+                        "description": "The entity ID"
+                    },
+                    "key_id": {
+                        "type": "string",
+                        "description": "The API key ID to delete"
+                    }
+                },
+                "required": ["entity_type", "entity_id", "key_id"]
+            }
+        ),
+        Tool(
+            name="get_auth_info",
+            description="Get information about the currently authenticated API key or user session. Use this to find out which user, organization, or entity the current API key belongs to, and what rights it has. Useful at the start of a session to understand the context.",
+            inputSchema={
+                "type": "object",
+                "properties": {}
+            }
+        ),
     ]
 
 
@@ -1049,14 +1305,14 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             dev_id = arguments["device_id"]
             limit = arguments.get("limit", 10)
 
-            # Note: This endpoint structure may vary depending on TTS configuration
+            # TTS Storage Integration returns NDJSON (newline-delimited JSON)
             path = f"applications/{app_id}/devices/{dev_id}/packages/storage/uplink_message"
             params = {"limit": limit, "order": "-received_at"}
 
-            result = await tts_client.get(path, params=params)
+            messages = await tts_client.get_ndjson(path, params=params)
             return [TextContent(
                 type="text",
-                text=json.dumps(result, indent=2)
+                text=json.dumps({"uplink_messages": messages, "count": len(messages)}, indent=2)
             )]
 
         elif name == "list_gateways":
@@ -1227,9 +1483,6 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             if command_type == "curl":
                 # Generate cURL command
                 if formatter_code:
-                    # Escape single quotes in formatter code for shell
-                    escaped_code = formatter_code.replace("'", "'\\''")
-
                     curl_cmd = f'''curl -X PUT \\
   -H "Authorization: Bearer $TTS_API_KEY" \\
   -H "Content-Type: application/json" \\
@@ -1546,6 +1799,237 @@ else:
             return [TextContent(
                 type="text",
                 text=f"✅ Downlink encoded:\n\n{json.dumps(result, indent=2)}"
+            )]
+
+        elif name == "set_application_formatters":
+            app_id = arguments["application_id"]
+
+            formatters = {}
+            field_paths = []
+
+            if "uplink_formatter" in arguments:
+                formatters["up_formatter"] = arguments["uplink_formatter"]
+                field_paths.append("formatters.up_formatter")
+
+            if "uplink_formatter_parameter" in arguments:
+                formatters["up_formatter_parameter"] = arguments["uplink_formatter_parameter"]
+                field_paths.append("formatters.up_formatter_parameter")
+
+            if "downlink_formatter" in arguments:
+                formatters["down_formatter"] = arguments["downlink_formatter"]
+                field_paths.append("formatters.down_formatter")
+
+            if "downlink_formatter_parameter" in arguments:
+                formatters["down_formatter_parameter"] = arguments["downlink_formatter_parameter"]
+                field_paths.append("formatters.down_formatter_parameter")
+
+            if not field_paths:
+                return [TextContent(type="text", text="Error: At least one formatter must be specified.")]
+
+            data = {
+                "application": {
+                    "ids": {"application_id": app_id},
+                    "formatters": formatters
+                },
+                "field_mask": {"paths": field_paths}
+            }
+
+            path = f"as/applications/{app_id}"
+            result = await tts_client.put(path, data)
+            return [TextContent(
+                type="text",
+                text=f"Application formatters updated for '{app_id}':\n\n{json.dumps(result, indent=2)}"
+            )]
+
+        elif name == "update_application":
+            app_id = arguments["application_id"]
+            application = {"ids": {"application_id": app_id}}
+            field_paths = []
+
+            if "name" in arguments:
+                application["name"] = arguments["name"]
+                field_paths.append("name")
+
+            if "description" in arguments:
+                application["description"] = arguments["description"]
+                field_paths.append("description")
+
+            if "attributes" in arguments:
+                application["attributes"] = arguments["attributes"]
+                field_paths.append("attributes")
+
+            if not field_paths:
+                return [TextContent(type="text", text="Error: At least one field (name, description, attributes) must be provided.")]
+
+            data = {
+                "application": application,
+                "field_mask": {"paths": field_paths}
+            }
+
+            path = f"applications/{app_id}"
+            result = await tts_client.put(path, data)
+            return [TextContent(
+                type="text",
+                text=f"Application '{app_id}' updated:\n\n{json.dumps(result, indent=2)}"
+            )]
+
+        elif name == "update_device":
+            app_id = arguments["application_id"]
+            dev_id = arguments["device_id"]
+            end_device = {
+                "ids": {
+                    "device_id": dev_id,
+                    "application_ids": {"application_id": app_id}
+                }
+            }
+            field_paths = []
+
+            if "name" in arguments:
+                end_device["name"] = arguments["name"]
+                field_paths.append("name")
+
+            if "description" in arguments:
+                end_device["description"] = arguments["description"]
+                field_paths.append("description")
+
+            if "attributes" in arguments:
+                end_device["attributes"] = arguments["attributes"]
+                field_paths.append("attributes")
+
+            if not field_paths:
+                return [TextContent(type="text", text="Error: At least one field (name, description, attributes) must be provided.")]
+
+            data = {
+                "end_device": end_device,
+                "field_mask": {"paths": field_paths}
+            }
+
+            path = f"applications/{app_id}/devices/{dev_id}"
+            result = await tts_client.put(path, data)
+            return [TextContent(
+                type="text",
+                text=f"Device '{dev_id}' updated:\n\n{json.dumps(result, indent=2)}"
+            )]
+
+        elif name == "update_gateway":
+            gw_id = arguments["gateway_id"]
+            gateway = {"ids": {"gateway_id": gw_id}}
+            field_paths = []
+
+            if "name" in arguments:
+                gateway["name"] = arguments["name"]
+                field_paths.append("name")
+
+            if "description" in arguments:
+                gateway["description"] = arguments["description"]
+                field_paths.append("description")
+
+            if "attributes" in arguments:
+                gateway["attributes"] = arguments["attributes"]
+                field_paths.append("attributes")
+
+            if "location_latitude" in arguments or "location_longitude" in arguments:
+                gateway["antennas"] = [{
+                    "location": {
+                        "latitude": arguments.get("location_latitude", 0),
+                        "longitude": arguments.get("location_longitude", 0),
+                        "altitude": arguments.get("location_altitude", 0),
+                        "source": "SOURCE_REGISTRY"
+                    }
+                }]
+                field_paths.append("antennas")
+
+            if not field_paths:
+                return [TextContent(type="text", text="Error: At least one field must be provided.")]
+
+            data = {
+                "gateway": gateway,
+                "field_mask": {"paths": field_paths}
+            }
+
+            path = f"gateways/{gw_id}"
+            result = await tts_client.put(path, data)
+            return [TextContent(
+                type="text",
+                text=f"Gateway '{gw_id}' updated:\n\n{json.dumps(result, indent=2)}"
+            )]
+
+        elif name == "list_api_keys":
+            entity_type = arguments["entity_type"]
+            entity_id = arguments["entity_id"]
+
+            entity_map = {
+                "application": f"applications/{entity_id}/api-keys",
+                "gateway": f"gateways/{entity_id}/api-keys",
+                "user": f"users/{entity_id}/api-keys"
+            }
+
+            if entity_type not in entity_map:
+                return [TextContent(type="text", text=f"Error: entity_type must be 'application', 'gateway', or 'user'")]
+
+            path = entity_map[entity_type]
+            result = await tts_client.get(path)
+            return [TextContent(
+                type="text",
+                text=json.dumps(result, indent=2)
+            )]
+
+        elif name == "create_api_key":
+            entity_type = arguments["entity_type"]
+            entity_id = arguments["entity_id"]
+
+            entity_map = {
+                "application": f"applications/{entity_id}/api-keys",
+                "gateway": f"gateways/{entity_id}/api-keys",
+                "user": f"users/{entity_id}/api-keys"
+            }
+
+            if entity_type not in entity_map:
+                return [TextContent(type="text", text=f"Error: entity_type must be 'application', 'gateway', or 'user'")]
+
+            data = {
+                "name": arguments["name"],
+                "rights": arguments["rights"]
+            }
+
+            if "expires_at" in arguments:
+                data["expires_at"] = arguments["expires_at"]
+
+            path = entity_map[entity_type]
+            result = await tts_client.post(path, data)
+            return [TextContent(
+                type="text",
+                text=f"API key created:\n\n{json.dumps(result, indent=2)}\n\n"
+                     f"IMPORTANT: Save the 'key' value now - it will not be shown again!"
+            )]
+
+        elif name == "delete_api_key":
+            entity_type = arguments["entity_type"]
+            entity_id = arguments["entity_id"]
+            key_id = arguments["key_id"]
+
+            entity_map = {
+                "application": f"applications/{entity_id}/api-keys/{key_id}",
+                "gateway": f"gateways/{entity_id}/api-keys/{key_id}",
+                "user": f"users/{entity_id}/api-keys/{key_id}"
+            }
+
+            if entity_type not in entity_map:
+                return [TextContent(type="text", text=f"Error: entity_type must be 'application', 'gateway', or 'user'")]
+
+            path = entity_map[entity_type]
+            await tts_client.delete(path)
+            return [TextContent(
+                type="text",
+                text=f"API key '{key_id}' deleted from {entity_type} '{entity_id}'"
+            )]
+
+        elif name == "get_auth_info":
+            path = "auth_info"
+            result = await tts_client.get(path)
+            return [TextContent(
+                type="text",
+                text=json.dumps(result, indent=2)
             )]
 
         else:
